@@ -374,8 +374,6 @@ MIT License - see LICENSE file for details
 - Based on tidyverse ecosystem (dplyr, ggplot2, stringr, lubridate, tidyr)
 
 ## Support
-
-- Issues: [GitHub Issues](https://github.com/yourusername/Data-Transformer-Studio/issues)
 - Message me at : https://www.linkedin.com/in/meronmkifle/
 
 ## Resources
