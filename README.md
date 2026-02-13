@@ -74,42 +74,6 @@ Generate publication-ready code:
 - **CSV Data**: Transformed dataset
 - **All R code is proper, runnable tidyverse syntax**
 
-## Installation
-
-### Local Setup
-
-1. **Clone the repository**:
-```bash
-git clone https://github.com/yourusername/Data-Transformer-Studio.git
-cd Data-Transformer-Studio
-```
-
-2. **Create virtual environment** (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. **Install dependencies**:
-```bash
-pip install -r requirements.txt
-```
-
-4. **Run the app**:
-```bash
-streamlit run data_transformer_app.py
-```
-
-The app will open at `http://localhost:8501`
-
-### Cloud Deployment (Streamlit Cloud)
-
-1. Push code to GitHub
-2. Go to [Streamlit Cloud](https://share.streamlit.io/)
-3. Click "New app"
-4. Select your repository and `data_transformer_app.py`
-5. Deploy!
-
 ## Usage
 
 ### Basic Workflow
