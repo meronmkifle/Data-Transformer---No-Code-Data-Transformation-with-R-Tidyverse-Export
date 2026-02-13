@@ -39,12 +39,6 @@ st.title("Data Transformer Studio")
 st.markdown("*Transform • Clean • Analyze • Visualize • Export*", unsafe_allow_html=True)
 st.markdown("---")
 
-# Initialization
-if 'r_transform_code' not in st.session_state:
-    st.session_state.r_transform_code = []
-if 'r_viz_code' not in st.session_state:
-    st.session_state.r_viz_code = []
-
 with st.sidebar:
     st.header("Data Import")
     st.markdown("---")
@@ -88,8 +82,6 @@ if uploaded_file:
         
         with col1:
             filter_col = st.selectbox("Column to filter", ["None"] + df.columns.tolist(), key="f1")
-        with col2:
-            pass
         
         if filter_col != "None":
             st.markdown("")
@@ -502,58 +494,67 @@ if uploaded_file:
         if not HAS_PLOTLY:
             st.error("Plotly required")
         else:
-            col1, col2, col3 = st.columns(3)
+            numeric_cols = transformed_df.select_dtypes(include=['number']).columns.tolist()
+            categorical_cols = transformed_df.select_dtypes(include=['object']).columns.tolist()
             
+            # Top row: Chart type and theme
+            col1, col2, col3 = st.columns(3)
             with col1:
                 plot_type = st.selectbox("Chart Type", ["Bar", "Line", "Scatter", "Box", "Histogram"], key="pc1")
             with col2:
                 template = st.selectbox("Theme", ["plotly_white", "plotly_dark", "ggplot2", "seaborn", "simple_white"], key="pc11")
             with col3:
-                height = st.slider("Height", 300, 800, 550, key="pc10")
+                height = st.slider("Chart Height", 300, 800, 550, key="pc10")
             
             st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
             
-            numeric_cols = transformed_df.select_dtypes(include=['number']).columns.tolist()
-            categorical_cols = transformed_df.select_dtypes(include=['object']).columns.tolist()
-            
+            # Axis Configuration
             col1, col2, col3 = st.columns(3)
-            
             with col1:
                 st.write("**X Axis**")
                 x_col = st.selectbox("Column", transformed_df.columns.tolist(), key="pc2")
                 x_label = st.text_input("Label", value=x_col, key="pc3")
-            
             with col2:
                 st.write("**Y Axis**")
                 y_col = st.selectbox("Column", numeric_cols if numeric_cols else transformed_df.columns.tolist(), key="pc4")
                 y_label = st.text_input("Label", value=y_col, key="pc5")
-            
             with col3:
                 st.write("**Title**")
                 chart_title = st.text_input("Chart Title", value=f"{y_col} by {x_col}", key="pc6")
             
             st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
             
-            col1, col2, col3 = st.columns(3)
+            # Styling Options
+            st.write("**Chart Styling**")
+            col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.write("**Styling**")
                 marker_size = st.slider("Marker Size", 1, 20, 8, key="pc7")
-                marker_color = st.color_picker("Color", "#636EFA", key="pc8")
-            
             with col2:
-                st.write("**Font & Layout**")
-                font_size = st.slider("Font Size", 10, 24, 14, key="pc9")
-                show_legend = st.checkbox("Show Legend", True, key="pc12")
-            
+                marker_color = st.color_picker("Marker Color", "#636EFA", key="pc8")
             with col3:
-                st.write("**Effects**")
-                color_by = st.selectbox("Color by", ["None"] + categorical_cols, key="pc13")
-                opacity = st.slider("Opacity", 0.0, 1.0, 1.0, key="pc16")
+                opacity = st.slider("Opacity", 0.0, 1.0, 1.0, key="pc16", step=0.1)
+            with col4:
+                font_size = st.slider("Font Size", 10, 24, 14, key="pc9")
             
             st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
             
+            # Additional Options
+            st.write("**Additional Options**")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                color_by = st.selectbox("Color by Column", ["None"] + categorical_cols, key="pc13")
+                show_legend = st.checkbox("Show Legend", True, key="pc12")
+            with col2:
+                pass
+            
+            st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
+            
+            # Generate and display chart
             try:
+                fig = None
+                
                 if plot_type == "Bar":
                     fig = px.bar(transformed_df, x=x_col, y=y_col, 
                                 color=color_by if color_by != "None" else None,
@@ -568,7 +569,7 @@ if uploaded_file:
                     fig = px.scatter(transformed_df, x=x_col, y=y_col,
                                     color=color_by if color_by != "None" else None,
                                     template=template, height=height)
-                    fig.update_traces(marker=dict(size=marker_size, opacity=opacity))
+                    fig.update_traces(marker=dict(size=marker_size, opacity=opacity, color=marker_color))
                 
                 elif plot_type == "Box":
                     fig = px.box(transformed_df, x=x_col, y=y_col,
@@ -577,21 +578,42 @@ if uploaded_file:
                 
                 elif plot_type == "Histogram":
                     fig = px.histogram(transformed_df, x=x_col, nbins=30,
+                                      color=color_by if color_by != "None" else None,
                                       template=template, height=height)
+                    fig.update_traces(marker=dict(opacity=opacity))
                 
-                fig.update_layout(
-                    title=dict(text=chart_title, font=dict(size=font_size)),
-                    xaxis_title=x_label,
-                    yaxis_title=y_label,
-                    showlegend=show_legend,
-                    font=dict(size=font_size),
-                    hovermode='closest'
-                )
-                
-                st.plotly_chart(fig, use_container_width=True)
+                if fig:
+                    fig.update_layout(
+                        title=dict(text=chart_title, font=dict(size=font_size)),
+                        xaxis_title=x_label,
+                        yaxis_title=y_label,
+                        showlegend=show_legend,
+                        font=dict(size=font_size),
+                        hovermode='closest'
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Update R code with styling
+                    r_viz_code_updated = f"""ggplot(data, aes(x = {x_col}, y = {y_col}{', color = ' + color_by if color_by != 'None' else ''})) +
+  geom_{plot_type.lower() if plot_type != 'Histogram' else 'histogram'}({f'size = {marker_size/10}, alpha = {opacity}, fill = \"{marker_color}\"' if plot_type == 'Scatter' else ''}) +
+  labs(
+    title = '{chart_title}',
+    x = '{x_label}',
+    y = '{y_label}'
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = {font_size}),
+    axis.text = element_text(size = {font_size - 2}),
+    legend.position = {'bottom' if show_legend else 'none'}
+  )"""
+                    
+                    st.write("**Generated R Code:**")
+                    st.code(r_viz_code_updated, language="r")
             
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error(f"Error generating chart: {str(e)}")
     
     # ============== TAB 5: EXPORT ==============
     with tab5:
@@ -648,6 +670,6 @@ else:
     - **Transform** - Filter, Select, Sort, Mutate, Group & Summarize, Pivot
     - **Clean** - Missing values, duplicates, outliers, data types
     - **Visualize** - 10 chart types (Plotly interactive)
-    - **Plot Editor** - Full chart customization with labels
+    - **Plot Editor** - Full chart customization with working controls
     - **Export** - Proper R/tidyverse/ggplot2 code + CSV
     """)
