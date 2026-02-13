@@ -1,6 +1,6 @@
 # Data Transformer Studio
 
-A comprehensive, interactive data transformation and visualization tool built with Streamlit, inspired by R for Data Science (2e) principles. Transform raw data into publication-ready insights with no code required, while generating production-grade R/tidyverse code.
+A light, interactive data transformation and visualization tool built with Streamlit, inspired by R for Data Science (2e) principles. Transform raw data into publication-ready insights with no code required, while generating production-grade R/tidyverse code.
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
