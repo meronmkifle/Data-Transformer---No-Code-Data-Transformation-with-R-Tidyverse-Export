@@ -337,10 +337,6 @@ MIT License - see LICENSE file for details
 - Data manipulation with [Pandas](https://pandas.pydata.org/) and [NumPy](https://numpy.org/)
 - Based on tidyverse ecosystem (dplyr, ggplot2, stringr, lubridate, tidyr)
 
-## Support
-
-- Issues: [GitHub Issues](https://github.com/yourusername/Data-Transformer-Studio/issues)
-- Email: your.email@example.com
 
 ## Resources
 
