@@ -25,7 +25,7 @@ if 'r_code' not in st.session_state:
 def generate_r_code():
     """Generate R tidyverse code from transformations"""
     if not st.session_state.transformations:
-        return "# No transformations applied yet"
+        return "# No transformations applied yet\n# Load your data and apply transformations"
     
     code_lines = [
         "library(tidyverse)",
@@ -33,59 +33,88 @@ def generate_r_code():
         "",
         "# Read data",
         'data <- read_csv("your_data.csv")',
-        "",
-        "# Transformations",
-        "data <- data %>%"
+        ""
     ]
     
+    # Add transformations
+    has_transformations = False
     for i, transform in enumerate(st.session_state.transformations):
         op_type = transform['type']
         
         if op_type == 'filter':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             code_lines.append(f"  filter({transform['condition']}) %>%")
+            has_transformations = True
         
         elif op_type == 'select':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             cols = ', '.join(f'`{col}`' for col in transform['columns'])
             code_lines.append(f"  select({cols}) %>%")
+            has_transformations = True
         
         elif op_type == 'rename':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             renames = ', '.join(f"`{old}` = `{new}`" for old, new in transform['mapping'].items())
             code_lines.append(f"  rename({renames}) %>%")
+            has_transformations = True
         
         elif op_type == 'mutate':
-            code_lines.append(f"  mutate({transform['expression']}) %>%")
+            if i == 0:
+                code_lines.append("data <- data %>%")
+            code_lines.append(f"  mutate({transform['new_column']} = {transform['expression']}) %>%")
+            has_transformations = True
         
         elif op_type == 'group_summarize':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             group_cols = ', '.join(f'`{col}`' for col in transform['group_by'])
-            summaries = ', '.join(
-                f"`{summary['name']}` = {summary['func']}(`{summary['column']}`)"
-                for summary in transform['summaries']
-            )
             code_lines.append(f"  group_by({group_cols}) %>%")
-            code_lines.append(f"  summarize({summaries}, .groups = 'drop') %>%")
+            
+            summaries = []
+            for summary in transform['summaries']:
+                summaries.append(f"`{summary['name']}` = {summary['func']}(`{summary['column']}`)")
+            
+            summaries_str = ', '.join(summaries)
+            code_lines.append(f"  summarize({summaries_str}, .groups = 'drop') %>%")
+            has_transformations = True
         
         elif op_type == 'pivot_longer':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             cols_str = ', '.join(f'`{col}`' for col in transform['cols'])
             code_lines.append(f"  pivot_longer(cols = c({cols_str}), names_to = '{transform['names_to']}', values_to = '{transform['values_to']}') %>%")
+            has_transformations = True
         
         elif op_type == 'pivot_wider':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             code_lines.append(f"  pivot_wider(names_from = `{transform['names_from']}`, values_from = `{transform['values_from']}`) %>%")
+            has_transformations = True
         
         elif op_type == 'arrange':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             if transform['descending']:
                 code_lines.append(f"  arrange(desc(`{transform['column']}`)) %>%")
             else:
                 code_lines.append(f"  arrange(`{transform['column']}`) %>%")
+            has_transformations = True
         
         elif op_type == 'distinct':
+            if i == 0:
+                code_lines.append("data <- data %>%")
             if transform.get('columns'):
                 cols = ', '.join(f'`{col}`' for col in transform['columns'])
                 code_lines.append(f"  distinct({cols}, .keep_all = {str(transform['keep_all']).lower()}) %>%")
             else:
                 code_lines.append(f"  distinct() %>%")
+            has_transformations = True
     
-    # Remove trailing %>% from last line
-    if code_lines[-1].endswith(" %>%"):
+    # Remove trailing %>% from last line if exists
+    if code_lines and code_lines[-1].endswith(" %>%"):
         code_lines[-1] = code_lines[-1][:-4]
     
     code_lines.append("")
@@ -115,15 +144,12 @@ def apply_transformations():
                 data = data.rename(columns=transform['mapping'])
             
             elif op_type == 'mutate':
-                # Safe eval with column access and pandas functions
                 safe_dict = {col: data[col] for col in data.columns}
                 safe_dict['pd'] = pd
-                safe_dict['np'] = __import__('numpy')
-                try:
-                    result = eval(transform['expression'], {"__builtins__": {}}, safe_dict)
-                    data[transform['new_column']] = result
-                except Exception as e:
-                    raise ValueError(f"Expression error: {str(e)}")
+                import numpy as np
+                safe_dict['np'] = np
+                result = eval(transform['expression'], {"__builtins__": {}}, safe_dict)
+                data[transform['new_column']] = result
             
             elif op_type == 'group_summarize':
                 agg_funcs = {}
@@ -134,11 +160,9 @@ def apply_transformations():
                         agg_funcs[col] = []
                     agg_funcs[col].append(func)
                 
-                # Use pandas agg with proper syntax
                 grouped = data.groupby(transform['group_by'])
                 agg_dict = {col: funcs if len(funcs) > 1 else funcs[0] for col, funcs in agg_funcs.items()}
                 data = grouped.agg(agg_dict).reset_index()
-                # Flatten column names if multi-level from agg
                 if isinstance(data.columns, pd.MultiIndex):
                     data.columns = ['_'.join(col).strip('_') for col in data.columns.values]
             
@@ -152,12 +176,14 @@ def apply_transformations():
                 )
             
             elif op_type == 'pivot_wider':
-                data = data.pivot_table(
-                    index=[col for col in data.columns if col not in [transform['names_from'], transform['values_from']]],
-                    columns=transform['names_from'],
-                    values=transform['values_from'],
-                    aggfunc='first'
-                ).reset_index()
+                non_pivot_cols = [col for col in data.columns if col not in [transform['names_from'], transform['values_from']]]
+                if non_pivot_cols:
+                    data = data.pivot_table(
+                        index=non_pivot_cols,
+                        columns=transform['names_from'],
+                        values=transform['values_from'],
+                        aggfunc='first'
+                    ).reset_index()
             
             elif op_type == 'arrange':
                 data = data.sort_values(
@@ -167,15 +193,12 @@ def apply_transformations():
             
             elif op_type == 'distinct':
                 if transform.get('columns'):
-                    data = data.drop_duplicates(
-                        subset=transform['columns'],
-                        keep='first' if transform['keep_all'] else False
-                    )
+                    data = data.drop_duplicates(subset=transform['columns'])
                 else:
                     data = data.drop_duplicates()
         
         except Exception as e:
-            st.error(f"Error in {op_type}: {str(e)}")
+            st.error(f"❌ Error in {op_type}: {str(e)}")
             return None
     
     st.session_state.data = data
@@ -197,11 +220,9 @@ with st.sidebar:
             st.session_state.transformations = []
             st.session_state.r_code = ""
             
-            # Display success with data info
             rows, cols = st.session_state.original_data.shape
             st.success(f"✅ Loaded: {rows:,} rows × {cols} columns")
             
-            # Show data types summary
             with st.expander("📋 Column Info", expanded=False):
                 col_info = pd.DataFrame({
                     'Column': st.session_state.original_data.columns,
@@ -281,7 +302,7 @@ with col1:
             st.markdown("Available columns: `" + "`, `".join(st.session_state.original_data.columns.tolist()) + "`")
             new_column = st.text_input("Column name (new or existing)")
             expression = st.text_input(
-                "Expression (e.g., `age * 2`, `age + salary`, `pd.to_datetime(date_col)`)",
+                "Expression (e.g., `amount * 2`, `revenue - cost`)",
                 placeholder="Use column names directly"
             )
             if st.button("Add Mutate", key="add_mutate"):
@@ -399,46 +420,27 @@ with col1:
                 with col_a:
                     st.caption(f"**Step {idx+1}:** {transform['type'].upper()}")
                     if transform['type'] == 'filter':
-                        st.text(f"  Condition: {transform['condition']}")
+                        st.text(f"  {transform['condition']}")
                     elif transform['type'] == 'select':
-                        st.text(f"  Columns: {', '.join(transform['columns'][:3])}{'...' if len(transform['columns']) > 3 else ''}")
-                    elif transform['type'] == 'rename':
-                        st.text(f"  Rename: {list(transform['mapping'].items())[0]}")
-                    elif transform['type'] == 'mutate':
-                        st.text(f"  {transform['new_column']} = {transform['expression'][:40]}...")
-                    elif transform['type'] == 'arrange':
-                        direction = "DESC" if transform['descending'] else "ASC"
-                        st.text(f"  By: {transform['column']} ({direction})")
+                        st.text(f"  {', '.join(transform['columns'][:3])}{'...' if len(transform['columns']) > 3 else ''}")
                 
                 with col_b:
-                    if st.button("↑", key=f"move_up_{idx}", help="Move up", disabled=idx==0):
+                    if st.button("↑", key=f"move_up_{idx}", disabled=idx==0):
                         st.session_state.transformations[idx], st.session_state.transformations[idx-1] = \
                             st.session_state.transformations[idx-1], st.session_state.transformations[idx]
                         apply_transformations()
                         st.rerun()
                 
                 with col_c:
-                    if st.button("❌", key=f"remove_{idx}", help="Remove this step"):
+                    if st.button("❌", key=f"remove_{idx}"):
                         st.session_state.transformations.pop(idx)
                         apply_transformations()
                         st.rerun()
             
-            col_reset, col_export = st.columns(2)
-            with col_reset:
-                if st.button("🔄 Reset All"):
-                    st.session_state.transformations = []
-                    st.session_state.data = st.session_state.original_data.copy()
-                    st.rerun()
-            with col_export:
-                if st.button("📊 View Final Schema"):
-                    st.dataframe(
-                        pd.DataFrame({
-                            'Column': st.session_state.data.columns,
-                            'Type': st.session_state.data.dtypes,
-                            'Sample': [str(st.session_state.data[col].iloc[0] if len(st.session_state.data) > 0 else 'N/A') for col in st.session_state.data.columns]
-                        }),
-                        use_container_width=True
-                    )
+            if st.button("🔄 Reset All"):
+                st.session_state.transformations = []
+                st.session_state.data = st.session_state.original_data.copy()
+                st.rerun()
 
 with col2:
     st.header("👁️ Data Preview")
@@ -467,8 +469,8 @@ if st.session_state.data is not None:
             mime="text/plain"
         )
     with col3:
-        if st.button("📋 Copy", help="Copy R code to clipboard"):
-            st.toast("✅ Copied! (Paste with Ctrl+V or Cmd+V)", icon="✅")
+        if st.button("📋 Copy"):
+            st.toast("✅ Copied to clipboard!", icon="✅")
 
 # Save/Load pipelines
 st.divider()
@@ -480,7 +482,7 @@ with col1:
     if st.button("💾 Save Pipeline"):
         if st.session_state.transformations:
             pipeline = {
-                'name': st.text_input("Pipeline name", f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}"),
+                'name': f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                 'created': datetime.now().isoformat(),
                 'transformations': st.session_state.transformations
             }
@@ -492,7 +494,7 @@ with col1:
                 mime="application/json"
             )
         else:
-            st.warning("No transformations to save")
+            st.warning("⚠️ No transformations to save")
 
 with col2:
     uploaded_pipeline = st.file_uploader("Load Pipeline", type=['json'], key="pipeline_upload")
@@ -504,4 +506,4 @@ with col2:
             st.success(f"✅ Loaded: {pipeline.get('name', 'Unknown')}")
             st.rerun()
         except Exception as e:
-            st.error(f"Error loading pipeline: {e}")
+            st.error(f"❌ Error loading pipeline: {e}")
