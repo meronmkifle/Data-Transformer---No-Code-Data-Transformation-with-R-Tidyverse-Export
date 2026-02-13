@@ -376,7 +376,7 @@ MIT License - see LICENSE file for details
 ## Support
 
 - Issues: [GitHub Issues](https://github.com/yourusername/Data-Transformer-Studio/issues)
-- Email: your.email@example.com
+- Message me at : https://www.linkedin.com/in/meronmkifle/
 
 ## Resources
 
