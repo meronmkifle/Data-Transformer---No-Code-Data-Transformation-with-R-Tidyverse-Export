@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  data-transformer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: data-transformer
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./sample_sales_data.csv:/app/sample_sales_data.csv:ro
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_LOGGER_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
