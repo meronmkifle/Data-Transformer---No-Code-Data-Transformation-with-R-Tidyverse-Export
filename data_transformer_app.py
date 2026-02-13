@@ -545,7 +545,7 @@ ggplot(data, aes(x = {x_col}, y = {y_col}{', color = ' + color_by if color_by !=
         
         with col1:
             st.download_button(
-                label="📊 Download Transformed CSV",
+                label="Download Transformed CSV",
                 data=st.session_state.data.to_csv(index=False),
                 file_name=f"data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv"
@@ -578,7 +578,7 @@ ggplot(data, aes(x = ..., y = ...)) +
   theme_minimal()
 """
             st.download_button(
-                label="📝 Download R Template",
+                label="Download R Template",
                 data=r_template,
                 file_name=f"analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.R",
                 mime="text/plain"
@@ -590,4 +590,4 @@ ggplot(data, aes(x = ..., y = ...)) +
         st.write(f"**Final Shape:** {st.session_state.data.shape[0]} rows × {st.session_state.data.shape[1]} columns")
 
 else:
-    st.info("👆 Upload a CSV or Excel file to start")
+    st.info("Upload a CSV or Excel file to start")
