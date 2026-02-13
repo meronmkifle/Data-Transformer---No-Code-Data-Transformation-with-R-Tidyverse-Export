@@ -111,56 +111,263 @@ with st.sidebar:
 if st.session_state.data is not None:
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["Transform", "String/Date", "Clean", "Visualize", "Plot Editor", "Export"])
     
-    # ============== TAB 1: TRANSFORM ==============
+    # ============== TAB 1: COMPREHENSIVE TRANSFORM (ALL dplyr VERBS) ==============
     with tab1:
-        st.markdown("<div class='section-header'>Data Transformation (dplyr)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Data Transformation (Complete dplyr Grammar - Hadley Wickham R4DS)</div>", unsafe_allow_html=True)
         
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.subheader("filter() - Select Rows")
+            st.write("**Master dplyr verbs for data manipulation**")
         with col2:
             if st.button("↺ Reset", key="reset_transform"):
                 st.session_state.data = st.session_state.original_df.copy()
                 st.rerun()
         
-        col1, col2 = st.columns(2)
-        with col1:
+        # Create nested tabs for different verb categories
+        subtab1, subtab2, subtab3, subtab4 = st.tabs(["Rows (filter/slice/arrange)", "Columns (select/rename/mutate)", "Groups (group_by/summarize)", "Advanced (case_when/if_else/across)"])
+        
+        # ROWS OPERATIONS
+        with subtab1:
+            st.markdown("### 🔹 Row Operations")
+            
+            st.subheader("filter() - Keep rows matching conditions")
             filter_col = st.selectbox("Column to filter", ["None"] + st.session_state.data.columns.tolist(), key="f_col")
-        
-        if filter_col != "None":
-            if st.session_state.data[filter_col].dtype == 'object':
-                values = st.multiselect(f"Keep values", st.session_state.data[filter_col].unique(), key="f_vals")
-                if values:
-                    st.session_state.data = st.session_state.data[st.session_state.data[filter_col].isin(values)]
+            
+            if filter_col != "None":
+                if st.session_state.data[filter_col].dtype == 'object':
+                    values = st.multiselect(f"Keep values", st.session_state.data[filter_col].unique(), key="f_vals")
+                    if values:
+                        st.session_state.data = st.session_state.data[st.session_state.data[filter_col].isin(values)]
+                        val_str = ", ".join([f"'{v}'" for v in values])
+                        st.info(f"filter({filter_col} %in% c({val_str}))")
+                        st.success(f"✓ Filtered: {st.session_state.data.shape[0]} rows remain")
+                else:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        min_val = st.number_input(f"{filter_col} min", value=float(st.session_state.data[filter_col].min()), key="f_min")
+                    with col2:
+                        max_val = st.number_input(f"{filter_col} max", value=float(st.session_state.data[filter_col].max()), key="f_max")
+                    
+                    st.session_state.data = st.session_state.data[(st.session_state.data[filter_col] >= min_val) & (st.session_state.data[filter_col] <= max_val)]
+                    st.info(f"filter({filter_col} >= {min_val} & {filter_col} <= {max_val})")
                     st.success(f"✓ Filtered: {st.session_state.data.shape[0]} rows remain")
+            
+            st.markdown("---")
+            st.subheader("slice() - Select rows by position")
+            slice_type = st.radio("Slice type", ["First N rows", "Last N rows", "Specific range"], horizontal=True, key="slice_type")
+            
+            if slice_type == "First N rows":
+                n = st.number_input("Number of rows", value=5, min_value=1, key="slice_n")
+                if st.button("Apply slice_head()", key="slice_head_btn"):
+                    st.session_state.data = st.session_state.data.head(n)
+                    st.info(f"slice_head(n = {n})")
+                    st.success(f"✓ Kept first {n} rows")
+            elif slice_type == "Last N rows":
+                n = st.number_input("Number of rows", value=5, min_value=1, key="slice_n_tail")
+                if st.button("Apply slice_tail()", key="slice_tail_btn"):
+                    st.session_state.data = st.session_state.data.tail(n)
+                    st.info(f"slice_tail(n = {n})")
+                    st.success(f"✓ Kept last {n} rows")
             else:
-                min_val, max_val = st.slider(f"Range", 
-                    float(st.session_state.original_df[filter_col].min()),
-                    float(st.session_state.original_df[filter_col].max()),
-                    (float(st.session_state.data[filter_col].min()), float(st.session_state.data[filter_col].max())),
-                    key="f_range")
-                st.session_state.data = st.session_state.data[(st.session_state.data[filter_col] >= min_val) & (st.session_state.data[filter_col] <= max_val)]
-                st.success(f"✓ Filtered: {st.session_state.data.shape[0]} rows remain")
+                col1, col2 = st.columns(2)
+                with col1:
+                    start = st.number_input("Start row", value=0, min_value=0, key="slice_start")
+                with col2:
+                    end = st.number_input("End row", value=10, key="slice_end")
+                if st.button("Apply slice()", key="slice_range_btn"):
+                    st.session_state.data = st.session_state.data.iloc[start:end]
+                    st.info(f"slice({start}:{end})")
+                    st.success(f"✓ Selected rows {start} to {end}")
+            
+            st.markdown("---")
+            st.subheader("arrange() - Sort rows (order by)")
+            sort_cols = st.multiselect("Sort by columns", st.session_state.data.columns.tolist(), key="sort_cols")
+            if sort_cols:
+                sort_asc = st.radio("Order", ["Ascending", "Descending"], key="sort_order", horizontal=True) == "Ascending"
+                st.session_state.data = st.session_state.data.sort_values(by=sort_cols, ascending=sort_asc)
+                order_str = "↑" if sort_asc else "↓"
+                cols_str = ", ".join(sort_cols)
+                st.info(f"arrange({order_str} {cols_str})")
+                st.success(f"✓ Sorted by {cols_str}")
         
-        st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
-        st.subheader("select() - Choose Columns")
-        selected_cols = st.multiselect("Columns to keep", st.session_state.data.columns.tolist(), 
-                                       default=st.session_state.data.columns.tolist(), key="sel_cols")
-        if selected_cols:
-            st.session_state.data = st.session_state.data[selected_cols]
+        # COLUMN OPERATIONS
+        with subtab2:
+            st.markdown("### 🔹 Column Operations")
+            
+            st.subheader("select() - Choose & rename columns")
+            selected_cols = st.multiselect("Columns to keep", st.session_state.data.columns.tolist(), 
+                                           default=st.session_state.data.columns.tolist(), key="sel_cols")
+            if selected_cols:
+                st.session_state.data = st.session_state.data[selected_cols]
+                st.info(f"select({', '.join(selected_cols)})")
+            
+            st.markdown("---")
+            st.subheader("rename() - Change column names")
+            rename_col = st.selectbox("Column to rename", st.session_state.data.columns.tolist(), key="rename_from")
+            new_name = st.text_input("New name", value=rename_col, key="rename_to")
+            if st.button("Apply rename()", key="rename_btn") and new_name != rename_col:
+                st.session_state.data = st.session_state.data.rename(columns={rename_col: new_name})
+                st.info(f"rename({new_name} = {rename_col})")
+                st.success(f"✓ Renamed {rename_col} → {new_name}")
+            
+            st.markdown("---")
+            st.subheader("relocate() - Change column order")
+            cols = st.session_state.data.columns.tolist()
+            col_order = st.multiselect("Reorder columns", cols, default=cols, key="relocate_cols")
+            if col_order and col_order != cols:
+                st.session_state.data = st.session_state.data[col_order]
+                st.info(f"relocate({', '.join(col_order)})")
+                st.success(f"✓ Reordered columns")
+            
+            st.markdown("---")
+            st.subheader("mutate() - Create/modify columns")
+            st.write("**Basic Arithmetic Mutations**")
+            new_col = st.text_input("New column name", key="mut_name")
+            operation = st.selectbox("Operation", [
+                "Simple arithmetic", "Conditional (if_else)", "Multiple conditions (case_when)",
+                "Across multiple columns", "Cumulative functions"
+            ], key="mut_type")
+            
+            numeric_cols = st.session_state.data.select_dtypes(include=['number']).columns.tolist()
+            
+            if operation == "Simple arithmetic" and numeric_cols:
+                col1, col2 = st.columns(2)
+                with col1:
+                    col_a = st.selectbox("Column A", numeric_cols, key="mut_a")
+                with col2:
+                    op_type = st.selectbox("Operation", ["+", "-", "*", "/", "log", "sqrt", "abs"], key="mut_op")
+                
+                if st.button("Apply", key="mut_simple_btn"):
+                    if op_type == "+":
+                        col_b = st.selectbox("Column B", numeric_cols, key="mut_b")
+                        st.session_state.data[new_col] = st.session_state.data[col_a] + st.session_state.data[col_b]
+                        st.info(f"mutate({new_col} = {col_a} + {col_b})")
+                    elif op_type == "*":
+                        factor = st.number_input("Factor", key="mut_factor")
+                        st.session_state.data[new_col] = st.session_state.data[col_a] * factor
+                        st.info(f"mutate({new_col} = {col_a} * {factor})")
+                    elif op_type == "log":
+                        st.session_state.data[new_col] = np.log(st.session_state.data[col_a].clip(lower=0.001))
+                        st.info(f"mutate({new_col} = log({col_a}))")
+                    elif op_type == "sqrt":
+                        st.session_state.data[new_col] = np.sqrt(st.session_state.data[col_a].clip(lower=0))
+                        st.info(f"mutate({new_col} = sqrt({col_a}))")
+                    elif op_type == "abs":
+                        st.session_state.data[new_col] = abs(st.session_state.data[col_a])
+                        st.info(f"mutate({new_col} = abs({col_a}))")
+                    st.success(f"✓ Created {new_col}")
         
-        st.markdown("<div class='spacer'></div>", unsafe_allow_html=True)
-        st.subheader("arrange() - Sort Data")
-        col1, col2 = st.columns(2)
-        with col1:
-            sort_col = st.selectbox("Sort by", ["None"] + st.session_state.data.columns.tolist(), key="sort_col")
-        with col2:
-            if sort_col != "None":
-                ascending = st.radio("Order", ["↑ Ascending", "↓ Descending"], key="sort_order", horizontal=True) == "↑ Ascending"
-                st.session_state.data = st.session_state.data.sort_values(sort_col, ascending=ascending)
-                st.success(f"✓ Sorted by {sort_col}")
+        # GROUP OPERATIONS
+        with subtab3:
+            st.markdown("### 🔹 Group Operations")
+            
+            st.subheader("group_by() + summarize()")
+            group_cols = st.multiselect("Group by columns", st.session_state.data.columns.tolist(), key="grp_cols")
+            
+            if group_cols:
+                numeric_cols = st.session_state.data.select_dtypes(include=['number']).columns.tolist()
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    agg_col = st.selectbox("Aggregate", numeric_cols, key="agg_col")
+                with col2:
+                    agg_fn = st.selectbox("Function", ["mean", "sum", "median", "min", "max", "sd", "n"], key="agg_fn")
+                with col3:
+                    result_name = st.text_input("Result name", value=f"{agg_fn}_{agg_col}", key="agg_name")
+                
+                if st.button("Apply", key="group_apply"):
+                    agg_map = {
+                        "mean": np.mean, "sum": np.sum, "median": np.median,
+                        "min": np.min, "max": np.max, "sd": np.std, "n": "count"
+                    }
+                    st.session_state.data = st.session_state.data.groupby(group_cols)[agg_col].agg(agg_map[agg_fn]).reset_index()
+                    st.session_state.data.columns = list(group_cols) + [result_name]
+                    group_str = ", ".join(group_cols)
+                    st.info(f"group_by({group_str}) %>% summarize({result_name} = {agg_fn}({agg_col}))")
+                    st.success(f"✓ Grouped and summarized")
+            
+            st.markdown("---")
+            st.subheader("count() - Count occurrences")
+            count_col = st.selectbox("Count by column", st.session_state.data.columns.tolist(), key="count_col")
+            if st.button("Apply count()", key="count_btn"):
+                st.session_state.data = st.session_state.data[count_col].value_counts().reset_index()
+                st.session_state.data.columns = [count_col, 'n']
+                st.info(f"count({count_col})")
+                st.success(f"✓ Counted {count_col}")
+        
+        # ADVANCED OPERATIONS
+        with subtab4:
+            st.markdown("### 🔹 Advanced dplyr Operations")
+            
+            st.subheader("case_when() - Multiple conditional mutations")
+            st.write("Create a new column based on multiple conditions")
+            new_col = st.text_input("New column name", key="cw_col")
+            
+            numeric_cols = st.session_state.data.select_dtypes(include=['number']).columns.tolist()
+            if numeric_cols and new_col:
+                col_for_cond = st.selectbox("Column for conditions", numeric_cols, key="cw_col_select")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    cond1_val = st.number_input("Condition 1 threshold", value=0, key="cw_cond1")
+                    cond1_name = st.text_input("Condition 1 label", "Low", key="cw_label1")
+                with col2:
+                    cond2_val = st.number_input("Condition 2 threshold", value=100, key="cw_cond2")
+                    cond2_name = st.text_input("Condition 2 label", "High", key="cw_label2")
+                
+                if st.button("Apply case_when()", key="cw_btn"):
+                    st.session_state.data[new_col] = pd.cut(
+                        st.session_state.data[col_for_cond],
+                        bins=[-np.inf, cond1_val, cond2_val, np.inf],
+                        labels=["Low", cond1_name, cond2_name]
+                    )
+                    st.info(f"mutate({new_col} = case_when({col_for_cond} < {cond1_val} ~ '{cond1_name}', {col_for_cond} < {cond2_val} ~ 'Medium', TRUE ~ '{cond2_name}'))")
+                    st.success(f"✓ Created {new_col} with case_when()")
+            
+            st.markdown("---")
+            st.subheader("if_else() - Conditional mutation")
+            st.write("Simple if/else condition")
+            new_col_ie = st.text_input("New column name", key="ie_col")
+            
+            if numeric_cols and new_col_ie:
+                col_ie = st.selectbox("Column", numeric_cols, key="ie_col_select")
+                threshold = st.number_input("Threshold value", value=0, key="ie_threshold")
+                true_val = st.text_input("If TRUE", "Yes", key="ie_true")
+                false_val = st.text_input("If FALSE", "No", key="ie_false")
+                
+                if st.button("Apply if_else()", key="ie_btn"):
+                    st.session_state.data[new_col_ie] = st.session_state.data[col_ie].apply(
+                        lambda x: true_val if x > threshold else false_val
+                    )
+                    st.info(f"mutate({new_col_ie} = if_else({col_ie} > {threshold}, '{true_val}', '{false_val}'))")
+                    st.success(f"✓ Created {new_col_ie} with if_else()")
+            
+            st.markdown("---")
+            st.subheader("across() - Apply function to multiple columns")
+            st.write("Transform multiple columns at once")
+            cols_to_transform = st.multiselect("Apply to columns", st.session_state.data.columns.tolist(), key="across_cols")
+            transform_fn = st.selectbox("Function", ["Scale (0-1)", "Log", "Round", "Abs"], key="across_fn")
+            
+            if st.button("Apply across()", key="across_btn") and cols_to_transform:
+                for col in cols_to_transform:
+                    if st.session_state.data[col].dtype in ['int64', 'float64']:
+                        if transform_fn == "Scale (0-1)":
+                            min_v = st.session_state.data[col].min()
+                            max_v = st.session_state.data[col].max()
+                            st.session_state.data[col] = (st.session_state.data[col] - min_v) / (max_v - min_v)
+                        elif transform_fn == "Log":
+                            st.session_state.data[col] = np.log(st.session_state.data[col].clip(lower=0.001))
+                        elif transform_fn == "Round":
+                            st.session_state.data[col] = round(st.session_state.data[col], 2)
+                        elif transform_fn == "Abs":
+                            st.session_state.data[col] = abs(st.session_state.data[col])
+                
+                cols_str = ", ".join(cols_to_transform)
+                st.info(f"mutate(across(c({cols_str}), {transform_fn}))")
+                st.success(f"✓ Applied {transform_fn} to {len(cols_to_transform)} columns")
         
         st.markdown("---")
+        st.markdown("<div class='section-header'>Data Preview</div>", unsafe_allow_html=True)
         st.dataframe(st.session_state.data, use_container_width=True, height=400)
         st.write(f"Shape: **{st.session_state.data.shape[0]} rows × {st.session_state.data.shape[1]} columns**")
     
