@@ -157,7 +157,7 @@ def build_r_pipeline(categories=None):
 
 st.markdown("""
 <div class='hero-banner'>
-    <h1>📊 Data Transformer Studio Pro</h1>
+    <h1>Data Transformer Studio Pro</h1>
     <p>R4DS 2e Complete Workflow — Import → Tidy → Transform → Visualize → Communicate — Live R Pipeline</p>
 </div>
 """, unsafe_allow_html=True)
