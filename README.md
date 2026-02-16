@@ -198,17 +198,7 @@ pip install -r requirements.txt
 
 > **Note:** `trendline="ols"` in the Relationship scatter requires `statsmodels`. If not installed, the app automatically falls back to `lowess`.
 
----
 
-## Project Structure
-
-```
-Data-Transformer-Studio/
-├── data_transformer_app.py     # Main Streamlit application (~2,090 lines)
-├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-└── sample_sales_data.csv       # Example dataset
-```
 
 ---
 
@@ -234,18 +224,6 @@ Data-Transformer-Studio/
 - Save-to-pipeline buttons decoupled from generate buttons via `st.session_state` (Streamlit does not support nested buttons)
 - `buf.seek(0)` applied before Excel `getvalue()` to ensure complete buffer reads
 
----
-
-## Based on R for Data Science (2e)
-
-| Tab | R4DS Chapters |
-|---|---|
-| EDA | Ch. 2, 10 |
-| Transform | Ch. 3 (dplyr) |
-| Tidy / Join | Ch. 5, 19 |
-| Strings / Dates / Factors | Ch. 14, 15, 16, 17 |
-| Clean | Ch. 18 |
-| Visualize / Plot Editor | Ch. 1, 9 (ggplot2) |
 
 ---
 
