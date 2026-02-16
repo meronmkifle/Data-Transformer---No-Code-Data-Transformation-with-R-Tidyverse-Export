@@ -17,8 +17,7 @@ st.set_page_config(page_title="Data Transformer Studio Pro", page_icon="📊", l
 
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    .main { background-color: #f8f9fb; font-family: 'Inter', sans-serif; }
+    .main { background-color: #f8f9fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     h1, h2, h3 { color: #1a1f36; }
     .hero-banner {
         background: linear-gradient(135deg, #1a1f36 0%, #2d3a6d 40%, #4a6cf7 100%);
@@ -1334,32 +1333,57 @@ if st.session_state.data is not None:
                     fig = None
                     cb = color_by if color_by != "None" else None
                     pal = COLOR_PALETTES.get(palette_choice, COLOR_PALETTES["Default"])
+                    # Only use discrete palette for categorical color columns
+                    _cb_cat = (cb is not None and df[cb].dtype == 'object')
+                    _pal_safe = pal if (cb is None or _cb_cat) else None
 
                     if pt == "Bar":
                         if yc != "(none)":
-                            fig = px.bar(df, x=xc, y=yc, color=cb, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.bar(df, x=xc, y=yc, color=cb,
+                                         template="plotly_white", color_discrete_sequence=_pal_safe)
                         else:
                             vc = df[xc].value_counts().reset_index()
                             vc.columns = [xc, 'count']
                             fig = px.bar(vc, x=xc, y='count', template="plotly_white", color_discrete_sequence=pal)
                     elif pt == "Line":
                         if yc != "(none)":
-                            fig = px.line(df, x=xc, y=yc, color=cb, markers=True, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.line(df, x=xc, y=yc, color=cb, markers=True,
+                                          template="plotly_white", color_discrete_sequence=_pal_safe)
                     elif pt == "Scatter":
                         if yc != "(none)":
-                            fig = px.scatter(df, x=xc, y=yc, color=cb, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.scatter(df, x=xc, y=yc, color=cb,
+                                             template="plotly_white", color_discrete_sequence=_pal_safe)
                     elif pt == "Histogram":
-                        fig = px.histogram(df, x=xc, color=cb, nbins=40, template="plotly_white", color_discrete_sequence=pal, marginal="box")
+                        # only pass color_discrete_sequence when color col is categorical
+                        cb_is_cat = cb is not None and df[cb].dtype == 'object' if cb else False
+                        fig = px.histogram(df, x=xc,
+                                           color=cb if cb else None,
+                                           nbins=40, template="plotly_white",
+                                           color_discrete_sequence=pal if cb_is_cat or not cb else None,
+                                           marginal="box", opacity=0.8,
+                                           barmode='overlay' if cb else 'relative')
                     elif pt == "Box":
-                        fig = px.box(df, x=cb, y=xc if yc == "(none)" else yc, color=cb, template="plotly_white", color_discrete_sequence=pal)
+                        fig = px.box(df, x=cb if cb else None,
+                                     y=xc if yc == "(none)" else yc,
+                                     color=cb if cb else None,
+                                     template="plotly_white", color_discrete_sequence=_pal_safe)
                     elif pt == "Violin":
                         if cb:
-                            fig = px.violin(df, x=cb, y=xc if yc == "(none)" else yc, color=cb, box=True, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.violin(df, x=cb, y=xc if yc == "(none)" else yc,
+                                            color=cb, box=True, template="plotly_white",
+                                            color_discrete_sequence=_pal_safe)
                         else:
-                            fig = px.violin(df, y=xc if yc == "(none)" else yc, box=True, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.violin(df, y=xc if yc == "(none)" else yc,
+                                            box=True, template="plotly_white",
+                                            color_discrete_sequence=pal)
                     elif pt == "Density":
-                        if HAS_PLOTLY:
-                            fig = px.histogram(df, x=xc, histnorm='density', color=cb, template="plotly_white", color_discrete_sequence=pal, marginal="rug")
+                        cb_is_cat = cb is not None and df[cb].dtype == 'object' if cb else False
+                        fig = px.histogram(df, x=xc, histnorm='density',
+                                           color=cb if cb else None,
+                                           template="plotly_white",
+                                           color_discrete_sequence=pal if cb_is_cat or not cb else None,
+                                           marginal="rug", opacity=0.6,
+                                           barmode='overlay' if cb else 'relative')
                     elif pt == "Heatmap (count)":
                         if len(cat_cols) >= 2:
                             hx = st.selectbox("Heatmap X", cat_cols, key="hx")
@@ -1371,39 +1395,52 @@ if st.session_state.data is not None:
                         fig.update_layout(
                             title=dict(text=ttl, font=dict(size=16, color="#1a1f36")),
                             xaxis_title=xl, yaxis_title=yl, height=450,
-                            font=dict(family="Inter", size=12)
+                            font=dict(family="Arial, sans-serif", size=12)
                         )
                         st.plotly_chart(fig, use_container_width=True)
 
-                        # Generate R code
                         r_code = generate_ggplot_code(
                             pt, xc, yc if yc != "(none)" else None, color_by,
                             ttl, xl, yl, cap, theme, 5, 0.8, pal[0], True
                         )
-                        with st.expander("📋 Generated R (ggplot2) Code"):
+                        with st.expander("Generated R (ggplot2) Code"):
                             st.code(r_code, language="r")
-                        if st.button("💾 Save to Pipeline", key="vq_save"):
-                            st.session_state.viz_code_blocks.append(r_code)
-                            add_step('viz', f'{pt}: {ttl}', r_code)
-                            st.success("✅ Added to R pipeline")
+                        # Store for save button
+                        st.session_state['vq_last_r_code'] = r_code
+                        st.session_state['vq_last_title'] = ttl
+                        st.session_state['vq_last_pt'] = pt
                     else:
                         st.info("Select appropriate X/Y columns for this chart type")
                 except Exception as e:
                     st.error(f"Chart error: {e}")
+
+                # Save button outside try/if fig block
+                if st.session_state.get('vq_last_r_code'):
+                    if st.button("Save to R Pipeline", key="vq_save"):
+                        rc = st.session_state['vq_last_r_code']
+                        st.session_state.viz_code_blocks.append(rc)
+                        add_step('viz', f"{st.session_state['vq_last_pt']}: {st.session_state['vq_last_title']}", rc)
+                        st.success("Added to R pipeline")
 
             # ── Distribution ──────────────────────────────────────
             with viz_sub[1]:
                 st.subheader("Distribution Analysis")
                 if num_cols:
                     d_col = st.selectbox("Column", num_cols, key="dist_col")
-                    d_type = st.radio("Chart", ["Histogram + KDE", "ECDF", "Q-Q Plot"], horizontal=True, key="dist_type")
+                    d_type = st.radio("Chart", ["Histogram + Box", "ECDF", "Q-Q Plot"], horizontal=True, key="dist_type")
                     d_color = st.selectbox("Color by", ["None"] + cat_cols, key="dist_color")
                     cb2 = d_color if d_color != "None" else None
 
-                    if d_type == "Histogram + KDE":
-                        fig = px.histogram(df, x=d_col, color=cb2, marginal="kde", nbins=40,
-                                           template="plotly_white", color_discrete_sequence=COLOR_PALETTES.get(palette_choice, COLOR_PALETTES["Default"]),
-                                           opacity=0.75, barmode='overlay' if cb2 else 'relative')
+                    if d_type == "Histogram + Box":
+                        pal_d = COLOR_PALETTES.get(palette_choice, COLOR_PALETTES["Default"])
+                        if cb2:
+                            fig = px.histogram(df, x=d_col, color=cb2, marginal="box", nbins=40,
+                                               template="plotly_white", color_discrete_sequence=pal_d,
+                                               opacity=0.75, barmode='overlay')
+                        else:
+                            fig = px.histogram(df, x=d_col, marginal="box", nbins=40,
+                                               template="plotly_white", color_discrete_sequence=pal_d,
+                                               opacity=0.85)
                         fig.update_layout(height=450, title=f"Distribution: {d_col}")
                         st.plotly_chart(fig, use_container_width=True)
 
@@ -1468,8 +1505,12 @@ if st.session_state.data is not None:
                         c1, c2 = st.columns(2)
                         with c1: rx = st.selectbox("X", num_cols, key="reg_x")
                         with c2: ry = st.selectbox("Y", [c for c in num_cols if c != rx], key="reg_y")
-                        fig = px.scatter(df, x=rx, y=ry, trendline="ols", template="plotly_white",
-                                         color_discrete_sequence=["#4a6cf7"], title=f"{ry} ~ {rx}")
+                        try:
+                            fig = px.scatter(df, x=rx, y=ry, trendline="ols", template="plotly_white",
+                                             color_discrete_sequence=["#4a6cf7"], title=f"{ry} ~ {rx}")
+                        except Exception:
+                            fig = px.scatter(df, x=rx, y=ry, trendline="lowess", template="plotly_white",
+                                             color_discrete_sequence=["#4a6cf7"], title=f"{ry} ~ {rx} (lowess)")
                         fig.update_layout(height=450)
                         st.plotly_chart(fig, use_container_width=True)
                         # Correlation
@@ -1641,105 +1682,144 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
                 log_x = st.checkbox("Log scale X", False, key="pe_logx")
                 log_y = st.checkbox("Log scale Y", False, key="pe_logy")
 
-            if st.button("🎨 Generate Publication-Ready Plot", key="pe_gen", type="primary"):
+            # Init session state keys for plot editor
+            for _k in ['pe_last_r_code', 'pe_last_title', 'pe_last_pt']:
+                if _k not in st.session_state:
+                    st.session_state[_k] = None
+
+            if st.button("Generate Publication-Ready Plot", key="pe_gen", type="primary"):
                 try:
                     pal = COLOR_PALETTES.get(palette_pe, COLOR_PALETTES["Default"])
                     cb_val = cb if cb != "None" else None
                     yc_val = yc if yc != "(count)" else None
+                    # Only use discrete palette when color column is categorical
+                    cb_is_cat = (cb_val is not None and df[cb_val].dtype == 'object')
+                    _pal = pal if (cb_val is None or cb_is_cat) else None
+
+                    fig = None
 
                     if pt == "Bar":
                         if yc_val:
-                            fig = px.bar(df, x=xc, y=yc_val, color=cb_val, template="plotly_white",
-                                         color_discrete_sequence=pal, opacity=op)
+                            fig = px.bar(df, x=xc, y=yc_val, color=cb_val,
+                                         template="plotly_white", color_discrete_sequence=_pal, opacity=op)
                         else:
-                            vc = df[xc].value_counts().reset_index(); vc.columns = [xc, 'count']
-                            fig = px.bar(vc, x=xc, y='count', template="plotly_white", color_discrete_sequence=pal, opacity=op)
+                            vc = df[xc].value_counts().reset_index()
+                            vc.columns = [xc, 'count']
+                            fig = px.bar(vc, x=xc, y='count',
+                                         template="plotly_white", color_discrete_sequence=pal, opacity=op)
                     elif pt == "Line":
-                        fig = px.line(df, x=xc, y=yc_val, color=cb_val, markers=True, template="plotly_white", color_discrete_sequence=pal)
+                        if yc_val:
+                            fig = px.line(df, x=xc, y=yc_val, color=cb_val, markers=True,
+                                          template="plotly_white", color_discrete_sequence=_pal)
                     elif pt == "Scatter":
-                        if smooth:
-                            fig = px.scatter(df, x=xc, y=yc_val, color=cb_val, trendline="ols", template="plotly_white",
-                                             color_discrete_sequence=pal, opacity=op)
-                            fig.update_traces(marker=dict(size=ms))
-                        else:
-                            fig = px.scatter(df, x=xc, y=yc_val, color=cb_val, template="plotly_white",
-                                             color_discrete_sequence=pal, opacity=op)
-                            fig.update_traces(marker=dict(size=ms))
+                        if yc_val:
+                            if smooth:
+                                fig = px.scatter(df, x=xc, y=yc_val, color=cb_val,
+                                                 trendline="lowess", template="plotly_white",
+                                                 color_discrete_sequence=_pal, opacity=op)
+                            else:
+                                fig = px.scatter(df, x=xc, y=yc_val, color=cb_val,
+                                                 template="plotly_white",
+                                                 color_discrete_sequence=_pal, opacity=op)
+                            if fig:
+                                fig.update_traces(selector=dict(mode='markers'), marker=dict(size=int(ms)))
                     elif pt == "Box":
-                        fig = px.box(df, x=cb_val, y=yc_val or xc, color=cb_val, template="plotly_white", color_discrete_sequence=pal)
-                        fig.update_traces(marker=dict(size=ms-2))
+                        _y_box = yc_val if yc_val else xc
+                        fig = px.box(df, x=cb_val, y=_y_box, color=cb_val,
+                                     template="plotly_white", color_discrete_sequence=_pal)
                     elif pt == "Violin":
+                        _y_vio = yc_val if yc_val else xc
                         if cb_val:
-                            fig = px.violin(df, x=cb_val, y=yc_val or xc, color=cb_val, box=True, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.violin(df, x=cb_val, y=_y_vio, color=cb_val,
+                                            box=True, template="plotly_white", color_discrete_sequence=_pal)
                         else:
-                            fig = px.violin(df, y=yc_val or xc, box=True, template="plotly_white", color_discrete_sequence=pal)
+                            fig = px.violin(df, y=_y_vio, box=True,
+                                            template="plotly_white", color_discrete_sequence=pal)
                     elif pt == "Histogram":
-                        fig = px.histogram(df, x=xc, color=cb_val, nbins=40, marginal="kde",
-                                           template="plotly_white", color_discrete_sequence=pal, opacity=op)
+                        _cb_h = cb_val if cb_is_cat else None
+                        fig = px.histogram(df, x=xc, color=_cb_h, nbins=40, marginal="box",
+                                           template="plotly_white",
+                                           color_discrete_sequence=pal if _cb_h else None,
+                                           opacity=op,
+                                           barmode='overlay' if _cb_h else 'relative')
                     elif pt == "Density":
-                        fig = px.histogram(df, x=xc, color=cb_val, histnorm='density',
-                                           template="plotly_white", color_discrete_sequence=pal, opacity=op, marginal="rug")
+                        _cb_d = cb_val if cb_is_cat else None
+                        fig = px.histogram(df, x=xc, color=_cb_d, histnorm='density',
+                                           template="plotly_white",
+                                           color_discrete_sequence=pal if _cb_d else None,
+                                           opacity=op, marginal="rug",
+                                           barmode='overlay' if _cb_d else 'relative')
 
-                    # Apply layout
-                    fig.update_layout(
-                        title=dict(text=f"<b>{ttl}</b>" + (f"<br><sub>{subtitle}</sub>" if subtitle else ""),
-                                   font=dict(size=fs+2, color="#1a1f36")),
-                        xaxis_title=xl, yaxis_title=yl,
-                        height=ht, showlegend=lg,
-                        font=dict(family="Inter, Arial, sans-serif", size=fs),
-                        plot_bgcolor='white', paper_bgcolor='white',
-                        xaxis=dict(showgrid=True, gridcolor='#f0f0f0', linecolor='#333'),
-                        yaxis=dict(showgrid=True, gridcolor='#f0f0f0', linecolor='#333'),
-                    )
+                    if fig is None:
+                        st.warning("Could not create plot — check your column selections (X and Y may be needed).")
+                    else:
+                        fig.update_layout(
+                            title=dict(
+                                text="<b>" + ttl + "</b>" + ("<br><sub>" + subtitle + "</sub>" if subtitle else ""),
+                                font=dict(size=int(fs) + 2, color="#1a1f36")
+                            ),
+                            xaxis_title=xl, yaxis_title=yl,
+                            height=int(ht), showlegend=lg,
+                            font=dict(family="Arial, sans-serif", size=int(fs)),
+                            plot_bgcolor='white', paper_bgcolor='white',
+                            xaxis=dict(showgrid=True, gridcolor='#f0f0f0', linecolor='#333'),
+                            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', linecolor='#333'),
+                        )
+                        if cap:
+                            fig.add_annotation(
+                                text=cap, xref="paper", yref="paper", x=0, y=-0.12,
+                                showarrow=False, font=dict(size=int(fs)-2, color="#9ca3af"), xanchor='left')
+                        if add_ref and ref_val is not None:
+                            fig.add_hline(y=float(ref_val), line_dash="dash", line_color=ref_col,
+                                          annotation_text=f"Ref: {ref_val}", annotation_position="top right")
+                        if flip:
+                            fig.update_layout(xaxis_title=yl, yaxis_title=xl)
+                        if log_x:
+                            fig.update_xaxes(type="log")
+                        if log_y:
+                            fig.update_yaxes(type="log")
 
-                    if cap:
-                        fig.add_annotation(text=cap, xref="paper", yref="paper", x=0, y=-0.12,
-                                           showarrow=False, font=dict(size=fs-2, color="#9ca3af"), xanchor='left')
+                        st.plotly_chart(fig, use_container_width=True)
 
-                    if add_ref and ref_val is not None:
-                        fig.add_hline(y=ref_val, line_dash="dash", line_color=ref_col,
-                                      annotation_text=f"Ref: {ref_val}", annotation_position="top right")
+                        # Build R code
+                        r_code = generate_ggplot_code(pt, xc, yc_val, cb, ttl, xl, yl, cap, theme, ms, op, clr, lg)
+                        if subtitle:
+                            r_code = r_code.replace(f'title = "{ttl}"', f'title = "{ttl}",\n    subtitle = "{subtitle}"')
+                        if flip:
+                            r_code += " +\n  coord_flip()"
+                        if log_x:
+                            r_code += " +\n  scale_x_log10()"
+                        if log_y:
+                            r_code += " +\n  scale_y_log10()"
+                        if add_ref and ref_val is not None:
+                            r_code += f" +\n  geom_hline(yintercept = {ref_val}, linetype = 'dashed', color = '{ref_col}')"
 
-                    if flip:
-                        fig.update_layout(xaxis=fig.layout.yaxis, yaxis=fig.layout.xaxis)
+                        st.markdown("---")
+                        st.subheader("Publication-Ready R Code (ggplot2)")
+                        st.code(r_code, language="r")
 
-                    if log_x: fig.update_xaxes(type="log")
-                    if log_y: fig.update_yaxes(type="log")
+                        sel_pkg = PUBLICATION_THEMES.get(theme, {}).get("pkg", "ggplot2")
+                        if sel_pkg != "ggplot2":
+                            st.info(f"Required: `install.packages('{sel_pkg}')`")
 
-                    st.plotly_chart(fig, use_container_width=True)
-
-                    # Generate R code
-                    r_code = generate_ggplot_code(
-                        pt, xc, yc_val, cb, ttl, xl, yl, cap, theme, ms, op, clr, lg
-                    )
-                    if subtitle:
-                        r_code = r_code.replace(f'title = "{ttl}"', f'title = "{ttl}",\n    subtitle = "{subtitle}"')
-                    if flip:
-                        r_code += " +\n  coord_flip()"
-                    if log_x:
-                        r_code += " +\n  scale_x_log10()"
-                    if log_y:
-                        r_code += " +\n  scale_y_log10()"
-                    if add_ref and ref_val is not None:
-                        r_code += f" +\n  geom_hline(yintercept = {ref_val}, linetype = 'dashed', color = '{ref_col}')"
-
-                    st.markdown("---")
-                    st.subheader("📋 Publication-Ready R Code (ggplot2)")
-                    st.code(r_code, language="r")
-
-                    sel_pkg = PUBLICATION_THEMES.get(theme, {}).get("pkg", "ggplot2")
-                    if sel_pkg != "ggplot2":
-                        st.info(f"Install required theme package: `install.packages('{sel_pkg}')`")
-
-                    if st.button("💾 Add to R Pipeline", key="pe_save"):
-                        st.session_state.viz_code_blocks.append(r_code)
-                        add_step('viz', f'{pt} plot: {ttl}', r_code)
-                        st.success("✅ Added to R pipeline")
+                        # Store for save button outside this block
+                        st.session_state.pe_last_r_code = r_code
+                        st.session_state.pe_last_title = ttl
+                        st.session_state.pe_last_pt = pt
 
                 except Exception as e:
                     st.error(f"Plot error: {e}")
                     import traceback
                     st.code(traceback.format_exc())
+
+            # Save button OUTSIDE the generate block (Streamlit nested button limitation)
+            if st.session_state.get('pe_last_r_code'):
+                st.markdown("---")
+                if st.button("Save last plot to R Pipeline", key="pe_save"):
+                    rc = st.session_state.pe_last_r_code
+                    st.session_state.viz_code_blocks.append(rc)
+                    add_step('viz', f"{st.session_state.pe_last_pt}: {st.session_state.pe_last_title}", rc)
+                    st.success("Added to R pipeline — check the Pipeline tab")
 
     # ════════════════════════════════════════════════════
     # TAB: R PIPELINE
@@ -1844,14 +1924,15 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
             try:
                 buf = io.BytesIO()
                 st.session_state.data.to_excel(buf, index=False, engine='openpyxl')
+                buf.seek(0)
                 st.download_button(
                     "📊 Excel (.xlsx)", buf.getvalue(),
                     f"data_transformed_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
-            except ImportError:
-                st.info("Install openpyxl for Excel: `pip install openpyxl`")
+            except Exception as _e:
+                st.info(f"Excel export unavailable: {_e}")
         with c4:
             json_data = st.session_state.data.to_json(orient='records', indent=2)
             st.download_button(
