@@ -1,4 +1,4 @@
-# Data Transformer Studio Pro
+# Data Transformer Studio with R programming 
 
 A comprehensive, interactive data transformation and visualization tool built with Streamlit, covering the complete **R for Data Science (2e)** workflow. Transform raw data into publication-ready insights with no code required, while generating production-grade R/tidyverse code at every step.
 
