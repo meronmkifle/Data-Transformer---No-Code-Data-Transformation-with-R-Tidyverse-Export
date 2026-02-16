@@ -735,7 +735,7 @@ if st.session_state.data is not None:
     # TAB: TIDY/JOIN
     # ════════════════════════════════════════════════════
     with tab_tidy:
-        st.markdown("<div class='section-header'>📐 Tidy & Joins (R4DS 2e Ch. 5 & 19)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Tidy & Joins (R4DS 2e Ch. 5 & 19)</div>", unsafe_allow_html=True)
         sub_pv, sub_sp, sub_jn = st.tabs(["Pivot", "Separate/Unite", "Joins"])
 
         with sub_pv:
