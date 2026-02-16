@@ -13,7 +13,7 @@ try:
 except ImportError:
     HAS_PLOTLY = False
 
-st.set_page_config(page_title="Data Transformer Studio Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Data Transformer Studio Pro", page_icon="", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -213,7 +213,7 @@ ggplot(data_clean, aes(x = {xc}{y_part}{color_aes_used})) +
 # ════════════════════════════════════════════════════
 st.markdown("""
 <div class='hero-banner'>
-    <h1>📊 Data Transformer Studio Pro</h1>
+    <h1> Data Transformer Studio Pro</h1>
     <p>R4DS 2e Complete Workflow — Import → Tidy → Transform → Visualize → Communicate — Live R Pipeline</p>
 </div>
 """, unsafe_allow_html=True)
@@ -262,7 +262,7 @@ with st.sidebar:
             if undo_last(): st.rerun()
             else: st.warning("Nothing to undo")
     with c2:
-        if st.button("🔄 Reset", use_container_width=True):
+        if st.button("Reset", use_container_width=True):
             if st.session_state.original_df is not None:
                 for k in ['pipeline_steps', 'viz_code_blocks', 'data_snapshots']:
                     st.session_state[k] = []
@@ -279,15 +279,15 @@ if st.session_state.data is not None:
     df = st.session_state.data
 
     tab_eda, tab_transform, tab_tidy, tab_strings, tab_clean, tab_viz, tab_editor, tab_pipeline, tab_export = st.tabs([
-        "📊 EDA", "🔄 Transform", "📐 Tidy/Join", "📝 Str/Date/Factor",
-        "🧹 Clean", "📈 Visualize", "🎨 Plot Editor", "⚙️ R Pipeline", "💾 Export"
+        "EDA", "Transform", "Tidy/Join", "Str/Date/Factor",
+        "Clean", "Visualize", "Plot Editor", "R Pipeline", "Export"
     ])
 
     # ════════════════════════════════════════════════════
     # TAB: EDA
     # ════════════════════════════════════════════════════
     with tab_eda:
-        st.markdown("<div class='section-header'>📊 Exploratory Data Analysis (R4DS 2e Ch. 2 & 10)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Exploratory Data Analysis (R4DS 2e Ch. 2 & 10)</div>", unsafe_allow_html=True)
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1: st.markdown(f"<div class='stat-card'><h3>{df.shape[0]:,}</h3><p>Rows</p></div>", unsafe_allow_html=True)
         with c2: st.markdown(f"<div class='stat-card'><h3>{df.shape[1]}</h3><p>Cols</p></div>", unsafe_allow_html=True)
@@ -295,7 +295,7 @@ if st.session_state.data is not None:
         with c4: st.markdown(f"<div class='stat-card'><h3>{df.duplicated().sum():,}</h3><p>Dupes</p></div>", unsafe_allow_html=True)
         with c5: st.markdown(f"<div class='stat-card'><h3>{df.memory_usage(deep=True).sum()/1024**2:.1f}</h3><p>MB</p></div>", unsafe_allow_html=True)
 
-        with st.expander("📋 glimpse()", expanded=True):
+        with st.expander("glimpse()", expanded=True):
             info = pd.DataFrame({
                 'Column': df.columns, 'Type': df.dtypes.astype(str),
                 'NonNull': df.notnull().sum(),
@@ -305,7 +305,7 @@ if st.session_state.data is not None:
             })
             st.dataframe(info, use_container_width=True, height=280)
 
-        with st.expander("📈 summary()"):
+        with st.expander("summary()"):
             nc = df.select_dtypes(include=['number']).columns.tolist()
             if nc:
                 desc = df[nc].describe().T
@@ -315,7 +315,7 @@ if st.session_state.data is not None:
             else:
                 st.info("No numeric columns")
 
-        with st.expander("🔍 Distributions"):
+        with st.expander("Distributions"):
             if HAS_PLOTLY:
                 dc = st.selectbox("Variable", df.columns.tolist(), key="eda_dc")
                 if df[dc].dtype in ['int64', 'float64']:
@@ -337,7 +337,7 @@ if st.session_state.data is not None:
             else:
                 st.warning("Install plotly: `pip install plotly`")
 
-        with st.expander("🔗 Correlation Heatmap"):
+        with st.expander("Correlation Heatmap"):
             nc = df.select_dtypes(include=['number']).columns.tolist()
             if HAS_PLOTLY and len(nc) >= 2:
                 corr = df[nc].corr()
@@ -353,7 +353,7 @@ if st.session_state.data is not None:
             else:
                 st.warning("Install plotly")
 
-        with st.expander("🔎 Missing Values Pattern"):
+        with st.expander("Missing Values Pattern"):
             miss = df.isnull().sum()
             miss = miss[miss > 0]
             if len(miss) > 0:
@@ -368,7 +368,7 @@ if st.session_state.data is not None:
                     st.plotly_chart(fig, use_container_width=True)
                 st.dataframe(miss_df, use_container_width=True)
             else:
-                st.success("✅ No missing values")
+                st.success("No missing values")
 
         st.markdown("**Data Preview (first 15 rows)**")
         st.dataframe(df.head(15), use_container_width=True, height=250)
@@ -377,7 +377,7 @@ if st.session_state.data is not None:
     # TAB: TRANSFORM
     # ════════════════════════════════════════════════════
     with tab_transform:
-        st.markdown("<div class='section-header'>🔄 Transform (R4DS 2e Ch. 3 — dplyr)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Transform (R4DS 2e Ch. 3 — dplyr)</div>", unsafe_allow_html=True)
         sub_r, sub_c, sub_g, sub_a = st.tabs(["Rows", "Columns", "Groups", "Advanced"])
 
         with sub_r:
@@ -845,7 +845,7 @@ if st.session_state.data is not None:
     # TAB: STRINGS / DATES / FACTORS
     # ════════════════════════════════════════════════════
     with tab_strings:
-        st.markdown("<div class='section-header'>📝 Strings, Dates & Factors (R4DS 2e Ch. 14-17)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Strings, Dates & Factors (R4DS 2e Ch. 14-17)</div>", unsafe_allow_html=True)
         sub_s, sub_d, sub_f = st.tabs(["Strings", "Dates", "Factors"])
 
         with sub_s:
@@ -996,7 +996,7 @@ if st.session_state.data is not None:
                     try:
                         st.session_state.data[dc3] = pd.to_datetime(st.session_state.data[dc3], infer_datetime_format=True)
                         add_step('string_date', f'Parse date: {dc3}', f'mutate({dc3} = {dfmt}({dc3}))')
-                        st.success("✅ Parsed successfully")
+                        st.success("Parsed successfully")
                         st.rerun()
                     except Exception as e:
                         st.error(f"Failed: {e}")
@@ -1140,12 +1140,12 @@ if st.session_state.data is not None:
     # TAB: CLEAN
     # ════════════════════════════════════════════════════
     with tab_clean:
-        st.markdown("<div class='section-header'>🧹 Data Cleaning (R4DS 2e Ch. 18)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Data Cleaning (R4DS 2e Ch. 18)</div>", unsafe_allow_html=True)
 
         miss = st.session_state.data.isnull().sum()
         total = miss.sum()
         if total > 0:
-            st.warning(f"⚠️ {total:,} missing values across {(miss > 0).sum()} columns")
+            st.warning(f"{total:,} missing values across {(miss > 0).sum()} columns")
             miss_df = miss[miss > 0].reset_index()
             miss_df.columns = ['Column', 'Missing']
             miss_df['Pct%'] = (miss_df['Missing'] / len(st.session_state.data) * 100).round(1)
@@ -1222,10 +1222,10 @@ if st.session_state.data is not None:
                     add_step('clean', f'Fill {fm2}', f'mutate(across(where(is.numeric), ~replace_na(.x, {fm2}(.x, na.rm = TRUE))))')
                     st.rerun()
         else:
-            st.success("✅ No missing values in current dataset")
+            st.success("No missing values in current dataset")
 
         st.markdown("---")
-        st.subheader("🔄 Type Conversion")
+        st.subheader("Type Conversion")
         c1, c2, c3 = st.columns(3)
         with c1: tc2 = st.selectbox("Column", df.columns.tolist(), key="c_tc")
         with c2: tt = st.selectbox("Convert to", ["numeric", "character", "integer", "factor", "logical"], key="c_tt")
@@ -1241,13 +1241,13 @@ if st.session_state.data is not None:
                 elif tt == "factor": st.session_state.data[tc2] = st.session_state.data[tc2].astype('category')
                 elif tt == "logical": st.session_state.data[tc2] = st.session_state.data[tc2].astype(bool)
                 add_step('clean', f'Convert {tc2} to {tt}', f'mutate({tc2} = as.{tt}({tc2}))')
-                st.success(f"✅ Converted {tc2} to {tt}")
+                st.success(f"Converted {tc2} to {tt}")
                 st.rerun()
             except Exception as e:
                 st.error(f"Conversion failed: {e}")
 
         st.markdown("---")
-        st.subheader("📊 Outlier Detection & Treatment (IQR method)")
+        st.subheader("Outlier Detection & Treatment (IQR method)")
         ncc = st.session_state.data.select_dtypes(include=['number']).columns.tolist()
         if ncc:
             oc = st.selectbox("Numeric column", ncc, key="c_oc")
@@ -1281,10 +1281,10 @@ if st.session_state.data is not None:
                         add_step('clean', f'Flag outliers in {oc}', f'mutate({oc}_outlier = {oc} < {lo:.2f} | {oc} > {hi:.2f})')
                     st.rerun()
             else:
-                st.success(f"✅ No outliers detected in {oc}")
+                st.success(f"No outliers detected in {oc}")
 
         st.markdown("---")
-        st.subheader("🔍 Duplicate Detection")
+        st.subheader("Duplicate Detection")
         dup_cols = st.multiselect("Check duplicates by columns (empty = all)", df.columns.tolist(), key="c_dupc")
         dups = st.session_state.data.duplicated(subset=dup_cols if dup_cols else None)
         st.metric("Duplicate rows", f"{dups.sum():,}")
@@ -1296,7 +1296,7 @@ if st.session_state.data is not None:
     # TAB: VISUALIZE — Quick Charts
     # ════════════════════════════════════════════════════
     with tab_viz:
-        st.markdown("<div class='section-header'>📈 Visualize (R4DS 2e Ch. 1 & 9 — ggplot2)</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Visualize (R4DS 2e Ch. 1 & 9 — ggplot2)</div>", unsafe_allow_html=True)
 
         if not HAS_PLOTLY:
             st.error("Install plotly: `pip install plotly`")
@@ -1546,7 +1546,7 @@ if st.session_state.data is not None:
                     max_facets = df[fac_col].nunique()
                     st.write(f"Facets: {max_facets}")
                     if max_facets > 20:
-                        st.warning(f"⚠️ {max_facets} facets — consider lumping levels first")
+                        st.warning(f"{max_facets} facets — consider lumping levels first")
 
                     try:
                         if fac_pt == "Scatter":
@@ -1572,7 +1572,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
   facet_wrap(~{fac_col}) +
   labs(title = "Faceted by {fac_col}", x = "{fac_x}", y = "{fac_y}") +
   theme_minimal()"""
-                        with st.expander("📋 R Code"):
+                        with st.expander("R Code"):
                             st.code(r_code_facet, language="r")
                     except Exception as e:
                         st.error(f"Facet error: {e}")
@@ -1625,7 +1625,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
     # TAB: PLOT EDITOR — Publication-Ready
     # ════════════════════════════════════════════════════
     with tab_editor:
-        st.markdown("<div class='section-header'>🎨 Plot Editor — Publication-Ready Charts</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Plot Editor — Publication-Ready Charts</div>", unsafe_allow_html=True)
         st.caption("Fine-tune every aesthetic parameter and get clean ggplot2 R code")
 
         if not HAS_PLOTLY:
@@ -1647,7 +1647,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
                 cb = st.selectbox("Color by", ["None"] + cat_pe, key="pe_cb")
 
             # Labels
-            st.subheader("📝 Labels")
+            st.subheader("Labels")
             c1, c2, c3 = st.columns(3)
             with c1: ttl = st.text_input("Title", f"{pt} chart", key="pe_ttl")
             with c2: xl = st.text_input("X label", xc, key="pe_xl")
@@ -1657,7 +1657,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
             with c2: subtitle = st.text_input("Subtitle", "", key="pe_sub")
 
             # Aesthetics
-            st.subheader("🎨 Aesthetics")
+            st.subheader("Aesthetics")
             c1, c2, c3, c4, c5 = st.columns(5)
             with c1: theme = st.selectbox("Theme", list(PUBLICATION_THEMES.keys()), key="pe_theme")
             with c2: fs = st.number_input("Font size", 8, 20, 12, key="pe_fs")
@@ -1831,14 +1831,14 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
         if not st.session_state.pipeline_steps:
             st.info("No operations recorded yet. Start transforming, cleaning, or visualizing your data.")
         else:
-            st.subheader("📋 Operation History")
-            cat_icons = {'transform': '🔄', 'string_date': '📝', 'clean': '🧹', 'tidy': '📐', 'viz': '📈'}
+            st.subheader("Operation History")
+            cat_icons = {'transform': '', 'string_date': '', 'clean': '', 'tidy': '', 'viz': ''}
             for s in st.session_state.pipeline_steps:
-                icon = cat_icons.get(s['category'], '⚙️')
+                icon = cat_icons.get(s['category'], '')
                 st.markdown(f"<div class='pipeline-step'><strong>{icon} Step {s['order']}</strong> [{s['category']}] — {s['description']}</div>", unsafe_allow_html=True)
 
             st.markdown("---")
-            st.subheader("⚙️ Generated R Code")
+            st.subheader("Generated R Code")
 
             code_mode = st.radio("Output mode", [
                 "Complete Pipeline (wrangling + viz)",
@@ -1861,8 +1861,8 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
 
             elif code_mode == "Separate Blocks (by category)":
                 cat_map = {
-                    'transform': '🔄 Transform', 'string_date': '📝 String/Date',
-                    'clean': '🧹 Cleaning', 'tidy': '📐 Tidy/Reshape', 'viz': '📈 Visualization'
+                    'transform': 'Transform', 'string_date': 'String/Date',
+                    'clean': 'Cleaning', 'tidy': 'Tidy/Reshape', 'viz': 'Visualization'
                 }
                 cats_present = list(dict.fromkeys(s['category'] for s in st.session_state.pipeline_steps))
                 for cat in cats_present:
@@ -1881,12 +1881,12 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
             with c1:
                 full_code = build_r_pipeline()
                 st.download_button(
-                    "📥 Download Complete R Script", full_code,
+                    "Download Complete R Script", full_code,
                     f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M')}.R", "text/plain",
                     use_container_width=True
                 )
             with c2:
-                if st.button("🗑️ Clear Pipeline", key="p_clear", use_container_width=True):
+                if st.button("Clear Pipeline", key="p_clear", use_container_width=True):
                     st.session_state.pipeline_steps = []
                     st.session_state.viz_code_blocks = []
                     st.session_state.step_counter = 0
@@ -1896,7 +1896,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
     # TAB: EXPORT
     # ════════════════════════════════════════════════════
     with tab_export:
-        st.markdown("<div class='section-header'>💾 Export Data & Scripts</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-header'>Export Data & Scripts</div>", unsafe_allow_html=True)
 
         # Data summary
         c1, c2, c3, c4 = st.columns(4)
@@ -1905,18 +1905,18 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
         c3.metric("Columns", st.session_state.data.shape[1])
         c4.metric("Steps applied", len(st.session_state.pipeline_steps))
 
-        st.subheader("📄 Download Data")
+        st.subheader("Download Data")
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.download_button(
-                "📄 CSV", st.session_state.data.to_csv(index=False),
+                "CSV", st.session_state.data.to_csv(index=False),
                 f"data_transformed_{datetime.now().strftime('%Y%m%d_%H%M')}.csv", "text/csv",
                 use_container_width=True
             )
         with c2:
             tsv_data = st.session_state.data.to_csv(index=False, sep='\t')
             st.download_button(
-                "📄 TSV", tsv_data,
+                "TSV", tsv_data,
                 f"data_transformed_{datetime.now().strftime('%Y%m%d_%H%M')}.tsv", "text/plain",
                 use_container_width=True
             )
@@ -1926,7 +1926,7 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
                 st.session_state.data.to_excel(buf, index=False, engine='openpyxl')
                 buf.seek(0)
                 st.download_button(
-                    "📊 Excel (.xlsx)", buf.getvalue(),
+                    "Excel (.xlsx)", buf.getvalue(),
                     f"data_transformed_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
@@ -1936,37 +1936,37 @@ ggplot(data_clean, aes(x = {fac_x}, y = {fac_y})) +
         with c4:
             json_data = st.session_state.data.to_json(orient='records', indent=2)
             st.download_button(
-                "📋 JSON", json_data,
+                "JSON", json_data,
                 f"data_transformed_{datetime.now().strftime('%Y%m%d_%H%M')}.json", "application/json",
                 use_container_width=True
             )
 
         st.markdown("---")
-        st.subheader("📝 Download Scripts")
+        st.subheader("Download Scripts")
         c1, c2, c3 = st.columns(3)
         with c1:
             st.download_button(
-                "📝 Complete R Script", build_r_pipeline(),
+                "Complete R Script", build_r_pipeline(),
                 f"analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.R", "text/plain",
                 use_container_width=True
             )
         with c2:
             wrangle_code = build_r_pipeline(categories=['transform', 'string_date', 'clean', 'tidy'])
             st.download_button(
-                "📝 Wrangling R Script", wrangle_code,
+                "Wrangling R Script", wrangle_code,
                 f"wrangling_{datetime.now().strftime('%Y%m%d_%H%M')}.R", "text/plain",
                 use_container_width=True
             )
         with c3:
             viz_code = build_r_pipeline(categories=['viz'])
             st.download_button(
-                "📝 Visualization R Script", viz_code,
+                "Visualization R Script", viz_code,
                 f"viz_{datetime.now().strftime('%Y%m%d_%H%M')}.R", "text/plain",
                 use_container_width=True
             )
 
         st.markdown("---")
-        st.subheader("📚 ggplot2 Theme Reference")
+        st.subheader("ggplot2 Theme Reference")
         theme_ref = """# ══════════════════════════════════════════════════════════════
 # Publication-Ready ggplot2 Themes Reference
 # Data Transformer Studio Pro — R4DS 2e
@@ -2043,12 +2043,12 @@ ggsave("figure1.pdf", width = 8, height = 6, dpi = 300)
 ggsave("figure1.png", width = 8, height = 6, dpi = 300, bg = "white")
 ggsave("figure1.svg", width = 8, height = 6)
 """
-        with st.expander("📋 Show Theme Reference Code"):
+        with st.expander("Show Theme Reference Code"):
             st.code(theme_ref, language="r")
-        st.download_button("📥 Download Theme Reference (.R)", theme_ref, "ggplot2_themes_reference.R", "text/plain")
+        st.download_button("Download Theme Reference (.R)", theme_ref, "ggplot2_themes_reference.R", "text/plain")
 
         st.markdown("---")
-        st.subheader("📊 Final Data Preview")
+        st.subheader("Final Data Preview")
         st.dataframe(st.session_state.data, use_container_width=True, height=350)
         st.write(f"**Final dataset: {st.session_state.data.shape[0]:,} rows × {st.session_state.data.shape[1]} columns**")
 
@@ -2069,21 +2069,21 @@ else:
     st.info("👆 Upload a CSV, Excel, or TSV file in the sidebar to get started")
     st.markdown("---")
     st.markdown("""
-### 🚀 Features (R4DS 2e Complete Coverage)
+### Features (R4DS 2e Complete Coverage)
 
 | Category | R4DS Chapter | Operations |
 |---|---|---|
-| **📊 EDA** | Ch. 2, 10 | glimpse, summary, distributions, correlation heatmap, missing value patterns |
-| **🔄 Transform** | Ch. 3 | filter, arrange, select, relocate, rename, mutate (8 modes), group_by + summarize, count, add_count, slice variants, distinct |
-| **📐 Tidy** | Ch. 5 | pivot_longer, pivot_wider, separate, unite |
-| **📝 Strings** | Ch. 14–15 | 14 string operations incl. regex, str_pad, str_starts/ends, str_extract |
-| **📅 Dates** | Ch. 17 | Parse (ymd/mdy/dmy), extract 8 components, date arithmetic |
-| **🏷️ Factors** | Ch. 16 | fct_infreq, fct_rev, fct_reorder, fct_lump_n, fct_recode, fct_collapse, fct_explicit_na |
-| **🧹 Missing** | Ch. 18 | drop_na, fill (fwd/bwd), replace_na, mean/median fill, type conversion, outlier IQR treatment |
-| **🔗 Joins** | Ch. 19 | left/right/inner/full/semi/anti joins |
-| **📈 Visualize** | Ch. 1, 9 | 8 geoms + distribution analysis + scatter matrix + facets + time series |
-| **🎨 Plot Editor** | Ch. 1, 9 | Fine-tune aesthetics, log scales, reference lines, trend lines, full ggplot2 code |
-| **⚙️ Advanced** | Ch. 3 | case_when, if_else, across (8 functions), lag/lead, rank variants, add_count |
+| **EDA** | Ch. 2, 10 | glimpse, summary, distributions, correlation heatmap, missing value patterns |
+| **Transform** | Ch. 3 | filter, arrange, select, relocate, rename, mutate (8 modes), group_by + summarize, count, add_count, slice variants, distinct |
+| **Tidy** | Ch. 5 | pivot_longer, pivot_wider, separate, unite |
+| **Strings** | Ch. 14–15 | 14 string operations incl. regex, str_pad, str_starts/ends, str_extract |
+| **Dates** | Ch. 17 | Parse (ymd/mdy/dmy), extract 8 components, date arithmetic |
+| **Factors** | Ch. 16 | fct_infreq, fct_rev, fct_reorder, fct_lump_n, fct_recode, fct_collapse, fct_explicit_na |
+| **Missing** | Ch. 18 | drop_na, fill (fwd/bwd), replace_na, mean/median fill, type conversion, outlier IQR treatment |
+| **Joins** | Ch. 19 | left/right/inner/full/semi/anti joins |
+| **Visualize** | Ch. 1, 9 | 8 geoms + distribution analysis + scatter matrix + facets + time series |
+| **Plot Editor** | Ch. 1, 9 | Fine-tune aesthetics, log scales, reference lines, trend lines, full ggplot2 code |
+| **Advanced** | Ch. 3 | case_when, if_else, across (8 functions), lag/lead, rank variants, add_count |
 
 ### 🔧 Pipeline
 Every operation generates ggplot2/dplyr R code using the modern `|>` pipe. Download as `.R` script.
